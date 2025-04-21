@@ -40,6 +40,7 @@
                     <select name="style" class="form-select">
                         <option value="apa" {% if style == 'apa' %}selected{% endif %}>APA</option>
                         <option value="chicago" {% if style == 'chicago' %}selected{% endif %}>Chicago</option>
+                        <option value="mla" {% if style == 'mla' %}selected{% endif %}>MLA</option>
                     </select>
                 </div>
                 <input type="hidden" name="web_address" value="{{ web_address }}">

@@ -25,14 +25,12 @@ def citation_components(web_address):
     except:
         return (first_name, last_name, page_title, website_title, date_published, date_accessed)
 
-    # Try to parse JSON-LD for author and date
     try:
         for script in soup.find_all("script", type="application/ld+json"):
             try:
                 data = json.loads(script.string)
                 if isinstance(data, dict):
                     if "@type" in data and data["@type"] in ["NewsArticle", "Article"]:
-                        # Author
                         if "author" in data:
                             if isinstance(data["author"], dict):
                                 author_name = data["author"].get("name", "").strip()
@@ -45,13 +43,9 @@ def citation_components(web_address):
                                 if len(name_parts) >= 2:
                                     first_name = name_parts[0]
                                     last_name = name_parts[-1]
-
-                        # Date
                         if "datePublished" in data:
                             parsed = parser.parse(data["datePublished"])
                             date_published = parsed.strftime("%B %d, %Y")
-
-                        # Headline/title
                         if "headline" in data:
                             page_title = data["headline"].strip()
                         break
@@ -60,7 +54,6 @@ def citation_components(web_address):
     except:
         pass
 
-    # TITLE DETECTION
     try:
         if not page_title or page_title == "Untitled Page":
             og_title = soup.find("meta", property="og:title")
@@ -85,7 +78,6 @@ def citation_components(web_address):
         except:
             pass
 
-    # WEBSITE NAME FROM URL
     try:
         match = re.search(r"(?:https?://)?(?:www\.)?([^/]+)", web_address)
         if match:
@@ -93,7 +85,6 @@ def citation_components(web_address):
     except:
         pass
 
-    # AUTHOR DETECTION (fallbacks)
     try:
         if not first_name or not last_name:
             for tag in soup.find_all(["p", "div", "span"]):
@@ -119,7 +110,6 @@ def citation_components(web_address):
     except:
         pass
 
-    # DATE DETECTION (fallbacks)
     try:
         if not date_published:
             time_tag = soup.find("time")
@@ -168,14 +158,30 @@ def chicago_compile(web_address):
     first_name, last_name, page_title, website_title, date_published, date_accessed = citation_components(web_address)
 
     if first_name and last_name:
-        citation = f"{last_name}, {first_name}. "
+        author = f"{first_name} {last_name}."
     else:
-        citation = ""
+        author = ""
 
-    citation += f'"{page_title}." {website_title}'
+    site = f"<i>{website_title}</i>"
+    citation = f"{author} \"{page_title}.\" {site}."
 
     if date_published:
-        citation += f", {date_published}"
+        citation += f" Published {date_published}."
+    citation += f" Accessed {date_accessed}. {web_address}"
+    return citation
 
-    citation += f". {web_address}. Accessed {date_accessed}."
+
+def mla_compile(web_address):
+    first_name, last_name, page_title, website_title, date_published, date_accessed = citation_components(web_address)
+    site = f"<i>{website_title}</i>"
+
+    if first_name and last_name:
+        author = f"{last_name}, {first_name}."
+    else:
+        author = ""
+
+    citation = f"{author} \"{page_title}.\" {site}"
+    if date_published:
+        citation += f", {date_published}"
+    citation += f", {web_address}. Accessed {date_accessed}."
     return citation
