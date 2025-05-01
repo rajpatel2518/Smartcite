@@ -1,12 +1,20 @@
-from flask import Flask, render_template, request
-from citation_logic import citation_components, apa_compile, chicago_compile, mla_compile, citation_from_doi
+from flask import Flask, render_template, request, session, make_response
+from citation_logic import (
+    citation_components,
+    apa_compile,
+    chicago_compile,
+    mla_compile,
+    citation_from_doi
+)
 import datetime
 
 app = Flask(__name__)
+app.secret_key = "supersecretkey"  # Required for session usage
 
 @app.route('/')
 def index():
-    return render_template("index.html")
+    history = session.get("history", [])
+    return render_template("index.html", history=history)
 
 @app.route('/about')
 def about():
@@ -33,7 +41,6 @@ def generate():
     url = request.form.get('web_address')
     style = request.form.get('style')
 
-    # Check if the input is a DOI
     is_doi = url.lower().startswith("10.") or "doi.org" in url.lower()
 
     if is_doi:
@@ -47,7 +54,26 @@ def generate():
     else:
         citation = "Invalid citation style selected."
 
+    if "history" not in session:
+        session["history"] = []
+    session["history"].append(citation)
+    session.modified = True
+
     return render_template("result.html", citation=citation)
+
+@app.route('/clear', methods=['POST'])
+def clear():
+    session.pop("history", None)
+    return render_template("index.html", history=[])
+
+@app.route('/export', methods=['POST'])
+def export():
+    history = session.get("history", [])
+    content = "\n".join(history)
+    response = make_response(content)
+    response.headers["Content-Disposition"] = "attachment; filename=citation_history.txt"
+    response.headers["Content-Type"] = "text/plain"
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True)

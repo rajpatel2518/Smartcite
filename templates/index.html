@@ -3,9 +3,34 @@
 <head>
     <title>SmartCite</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .citation-box {
+            position: relative;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: #fffbe6;
+            border-left: 5px solid #FFB81C;
+        }
+        .copy-icon, .edit-icon {
+            position: absolute;
+            top: 0.5rem;
+            font-size: 1.2rem;
+            color: #101820;
+            display: none;
+        }
+        .copy-icon {
+            right: 2.5rem;
+        }
+        .edit-icon {
+            right: 0.75rem;
+        }
+        .citation-box:hover .copy-icon,
+        .citation-box:hover .edit-icon {
+            display: block;
+        }
+    </style>
 </head>
 <body style="background-color: #fff7e6;">
-
     <nav class="navbar navbar-expand-lg" style="background-color: #FFB81C;">
         <div class="container">
             <a class="navbar-brand fw-bold" href="/" style="color: #101820;">📚 SmartCite</a>
@@ -24,7 +49,7 @@
             <h2 class="mb-4" style="color: #101820;">Generate Your Citation</h2>
             <form action="/confirm" method="POST">
                 <div class="mb-3">
-                    <label for="url" class="form-label" style="color: #101820;">Enter a URL:</label>
+                    <label for="url" class="form-label" style="color: #101820;">Enter a URL or DOI:</label>
                     <input type="text" class="form-control" name="url" id="url" required>
                 </div>
                 <div class="mb-3">
@@ -38,13 +63,42 @@
                 <button type="submit" class="btn btn-dark">Submit</button>
             </form>
         </div>
+
+        {% if history %}
+        <div class="mt-5">
+            <h4 style="color: #101820;">📖 Citation History</h4>
+            {% for item in history %}
+            <div class="citation-box">
+                {{ item }}
+                <span class="copy-icon" onclick="copyText(this.parentElement)" title="Copy">📋</span>
+                <form action="/confirm" method="POST">
+                    <input type="hidden" name="url" value="{{ item }}">
+                    <input type="hidden" name="style" value="apa">
+                    <button type="submit" class="edit-icon btn btn-sm p-0" title="Edit">✏️</button>
+                </form>
+            </div>
+            {% endfor %}
+            <form action="/clear" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Clear History</button>
+            </form>
+            <form action="/export" method="POST" class="d-inline ms-2">
+                <button type="submit" class="btn btn-sm btn-outline-success">Export History (.txt)</button>
+            </form>
+        </div>
+        {% endif %}
     </div>
 
     <footer class="text-center mt-5 py-4" style="background-color: #FFB81C;">
         <p class="mb-0" style="color: #101820;">© <span id="year"></span> SmartCite. A KSU Student Project.</p>
     </footer>
+
     <script>
         document.getElementById('year').textContent = new Date().getFullYear();
+        function copyText(el) {
+            const text = el.innerText.trim();
+            navigator.clipboard.writeText(text);
+            alert("Citation copied to clipboard!");
+        }
     </script>
 </body>
 </html>
