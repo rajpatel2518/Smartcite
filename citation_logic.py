@@ -15,10 +15,7 @@ def citation_components(web_address):
     date_accessed = datetime.date.today().strftime("%B %d, %Y")
 
     try:
-        req = urllib.request.Request(
-            web_address,
-            headers={"User-Agent": "Mozilla/5.0"}
-        )
+        req = urllib.request.Request(web_address, headers={"User-Agent": "Mozilla/5.0"})
         response = urllib.request.urlopen(req)
         html = response.read()
         soup = BeautifulSoup(html, 'html.parser')
@@ -29,28 +26,29 @@ def citation_components(web_address):
         for script in soup.find_all("script", type="application/ld+json"):
             try:
                 data = json.loads(script.string)
-                if isinstance(data, dict):
-                    if "@type" in data and data["@type"] in ["NewsArticle", "Article"]:
-                        if "author" in data:
-                            if isinstance(data["author"], dict):
-                                author_name = data["author"].get("name", "").strip()
-                            elif isinstance(data["author"], list):
-                                author_name = data["author"][0].get("name", "").strip()
-                            else:
-                                author_name = ""
-                            if author_name:
-                                name_parts = author_name.split()
-                                if len(name_parts) >= 2:
-                                    first_name = name_parts[0]
-                                    last_name = name_parts[-1]
-                        if "datePublished" in data:
-                            parsed = parser.parse(data["datePublished"])
-                            date_published = parsed.strftime("%B %d, %Y")
-                        if "headline" in data:
-                            page_title = data["headline"].strip()
-                        break
+                if isinstance(data, dict) and data.get("@type") in ["NewsArticle", "Article"]:
+                    if "author" in data:
+                        author_data = data["author"]
+                        if isinstance(author_data, dict):
+                            author_name = author_data.get("name", "").strip()
+                        elif isinstance(author_data, list):
+                            author_name = author_data[0].get("name", "").strip()
+                        else:
+                            author_name = ""
+                        if author_name:
+                            name_parts = author_name.split()
+                            if len(name_parts) >= 2:
+                                first_name = name_parts[0]
+                                last_name = name_parts[-1]
+                    if "datePublished" in data:
+                        parsed = parser.parse(data["datePublished"])
+                        date_published = parsed.strftime("%B %d, %Y")
+                    if "headline" in data:
+                        page_title = data["headline"].strip()
+                    break
             except:
                 continue
+
     except:
         pass
 
@@ -157,11 +155,7 @@ def apa_compile(web_address):
 def chicago_compile(web_address):
     first_name, last_name, page_title, website_title, date_published, date_accessed = citation_components(web_address)
 
-    if first_name and last_name:
-        author = f"{first_name} {last_name}."
-    else:
-        author = ""
-
+    author = f"{first_name} {last_name}." if first_name and last_name else ""
     site = f"<i>{website_title}</i>"
     citation = f"{author} \"{page_title}.\" {site}."
 
@@ -175,13 +169,50 @@ def mla_compile(web_address):
     first_name, last_name, page_title, website_title, date_published, date_accessed = citation_components(web_address)
     site = f"<i>{website_title}</i>"
 
-    if first_name and last_name:
-        author = f"{last_name}, {first_name}."
-    else:
-        author = ""
-
+    author = f"{last_name}, {first_name}." if first_name and last_name else ""
     citation = f"{author} \"{page_title}.\" {site}"
     if date_published:
         citation += f", {date_published}"
     citation += f", {web_address}. Accessed {date_accessed}."
     return citation
+
+
+def citation_from_doi(doi: str, style: str):
+    import requests
+    if doi.startswith("https://doi.org/"):
+        doi = doi.replace("https://doi.org/", "")
+
+    url = f"https://api.crossref.org/works/{doi}"
+    try:
+        response = requests.get(url)
+        data = response.json()["message"]
+
+        author_list = data.get("author", [])
+        if author_list:
+            first = author_list[0].get("given", "")
+            last = author_list[0].get("family", "")
+        else:
+            first = last = ""
+
+        title = data.get("title", ["Untitled"])[0]
+        container = data.get("container-title", [""])[0]
+        year = data.get("published-print", {}).get("date-parts", [[None]])[0][0] or "n.d."
+        accessed = datetime.date.today().strftime("%d %b. %Y")
+        link = f"https://doi.org/{doi}"
+
+        if style == "apa":
+            if first and last:
+                return f"{last}, {first[0]}. ({year}). {title}. {container}. {link}"
+            else:
+                return f"{title} ({year}). {container}. {link}"
+
+        elif style == "chicago":
+            author = f"{first} {last}." if first and last else ""
+            return f"{author} \"{title}.\" <i>{container}</i>. Published {year}. Accessed {accessed}. {link}"
+
+        elif style == "mla":
+            author = f"{last}, {first}." if first and last else ""
+            return f"{author} \"{title}.\" <i>{container}</i>, {year}, {link}. Accessed {accessed}."
+
+    except Exception as e:
+        return f"Error generating citation from DOI: {e}"

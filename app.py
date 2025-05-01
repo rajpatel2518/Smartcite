@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from citation_logic import citation_components, apa_compile, chicago_compile, mla_compile
+from citation_logic import citation_components, apa_compile, chicago_compile, mla_compile, citation_from_doi
 import datetime
 
 app = Flask(__name__)
@@ -33,7 +33,12 @@ def generate():
     url = request.form.get('web_address')
     style = request.form.get('style')
 
-    if style == 'apa':
+    # Check if the input is a DOI
+    is_doi = url.lower().startswith("10.") or "doi.org" in url.lower()
+
+    if is_doi:
+        citation = citation_from_doi(url, style)
+    elif style == 'apa':
         citation = apa_compile(url)
     elif style == 'chicago':
         citation = chicago_compile(url)
