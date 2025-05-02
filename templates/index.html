@@ -69,11 +69,16 @@
             <h4 style="color: #101820;">📖 Citation History</h4>
             {% for item in history %}
             <div class="citation-box">
-                {{ item }}
+                {{ item.citation }}
                 <span class="copy-icon" onclick="copyText(this.parentElement)" title="Copy">📋</span>
                 <form action="/confirm" method="POST">
-                    <input type="hidden" name="url" value="{{ item }}">
-                    <input type="hidden" name="style" value="apa">
+                    <input type="hidden" name="url" value="{{ item.url }}">
+                    <input type="hidden" name="style" value="{{ item.style }}">
+                    <input type="hidden" name="first_name" value="{{ item.first_name }}">
+                    <input type="hidden" name="last_name" value="{{ item.last_name }}">
+                    <input type="hidden" name="page_title" value="{{ item.page_title }}">
+                    <input type="hidden" name="website_title" value="{{ item.website_title }}">
+                    <input type="hidden" name="date_published" value="{{ item.date_published }}">
                     <button type="submit" class="edit-icon btn btn-sm p-0" title="Edit">✏️</button>
                 </form>
             </div>

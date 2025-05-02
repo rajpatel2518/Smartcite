@@ -24,7 +24,15 @@ def about():
 def confirm():
     url = request.form.get('url')
     style = request.form.get('style')
-    first, last, title, website, published, _ = citation_components(url)
+    first = request.form.get('first_name')
+    last = request.form.get('last_name')
+    title = request.form.get('page_title')
+    website = request.form.get('website_title')
+    published = request.form.get('date_published')
+
+    # If fields weren't included (like from Edit), fetch them
+    if not all([first, last, title, website, published]):
+        first, last, title, website, published, _ = citation_components(url)
 
     return render_template("confirm.html",
         first_name=first,
@@ -54,9 +62,15 @@ def generate():
     else:
         citation = "Invalid citation style selected."
 
+    entry = {
+        "citation": citation,
+        "url": url,
+        "style": style
+    }
+
     if "history" not in session:
         session["history"] = []
-    session["history"].append(citation)
+    session["history"].append(entry)
     session.modified = True
 
     return render_template("result.html", citation=citation)
@@ -69,7 +83,7 @@ def clear():
 @app.route('/export', methods=['POST'])
 def export():
     history = session.get("history", [])
-    content = "\n".join(history)
+    content = "\n".join(item["citation"] for item in history)
     response = make_response(content)
     response.headers["Content-Disposition"] = "attachment; filename=citation_history.txt"
     response.headers["Content-Type"] = "text/plain"
